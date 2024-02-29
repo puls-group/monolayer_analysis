@@ -1,0 +1,51 @@
+#!/bin/bash
+
+echo "Trajectories should be put in subdirectories 'film_trajectories/<T>K_<pairs>A'"
+
+temperatures=(200 250 300 350 400)
+il_pair_counts=(54 54 54 154 154)
+alu_count=(14592 14952 14952 58368 58368)
+oxy_count=(20736 20736 20736 82944 82944)
+ohy_count=(2304 2304 2304 9216 9216)
+
+max_scale_adjusts=(0.34 0.34 0.34 0.16 0.16)
+rescale_adjusts=(0.31 0.295 0.335 0.32 0.40)
+grid_sizes=(60 60 51 51 51)
+vmaxs=(0.4 0.4 0.4 0.5 0.6)
+
+# IL type: C2Mim NTF2
+cation_atoms=19
+anion_atoms=15
+
+# distance in nanometer for particles to be considered touching
+cutoff_distance=6
+# minimal number of vertices a hole needs to have to be considered a hole and not a face of the film
+minimal_hole_vertex_count=6
+
+for i in "${!temperatures[@]}"; do
+	temperature=${temperatures[i]}
+	il_pair_count=${il_pair_counts[i]}
+	max_scale_adjust=${max_scale_adjusts[i]}
+	rescale_adjust=${rescale_adjusts[i]}
+	grid_size=${grid_sizes[i]}
+	vmax=${vmaxs[i]}
+
+	indir=film_trajectories/${temperature}K_${il_pair_count}A
+	partialsdir=${indir}/partial/
+
+	trajectory_src=${indir}/nvt.xtc
+	period_out=${partialsdir}/pbc.period
+	cation_partial_xtc=${partialsdir}/cation_com.xtc
+	cation_partial_traj=${partialsdir}/cation_com.traj
+	anion_partial_xtc=${partialsdir}/anion_com.xtc
+	anion_partial_traj=${partialsdir}/anion_com.traj
+
+	output_dir="./results/2d_rdf/${temperature}K_${il_pair_count}A/"
+
+	echo "Processing 2d distributions in ${output_dir} ..."
+
+	# Calcualte 2d distribution of anions with respect to cation
+	./scripts/film/plot_2d_distribution_colored.py -i ${output_dir}/cation_cation_ -i ${output_dir}/cation_anion_ -o ${output_dir} -cx ${max_scale_adjust} -cy ${max_scale_adjust} -g ${grid_size} -rx ${rescale_adjust} -a -m ${vmax}
+done
+
+exit 0

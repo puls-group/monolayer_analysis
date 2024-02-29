@@ -1,0 +1,37 @@
+#!/bin/bash
+
+temperatures=(200 250 300 350 400)
+il_pair_counts=(54 54 54 154 154)
+alu_count=(14592 14952 14952 58368 58368)
+oxy_count=(20736 20736 20736 82944 82944)
+ohy_count=(2304 2304 2304 9216 9216)
+
+# IL type: C2Mim NTF2
+cation_atoms=19
+anion_atoms=15
+
+# distance in nanometer for particles to be considered touching
+cutoff_distance=2
+# minimal number of vertices a hole needs to have to be considered a hole and not a face of the film
+minimal_hole_vertex_count=6
+
+morph_dir="./results/morphology"
+
+SYSTEM_AGGR_OPTS=(-og "${morph_dir}/")
+
+for i in "${!temperatures[@]}"; do
+	temperature=${temperatures[i]}
+	il_pair_count=${il_pair_counts[i]}
+
+	indir=film_trajectories/${temperature}K_${il_pair_count}A
+	partialsdir=${indir}/partial/
+
+	output_dir="${morph_dir}/${temperature}K_${il_pair_count}A/"
+
+    SYSTEM_AGGR_OPTS+=(-i ${output_dir}/film_outline_area.dat -ie ${indir}/nvt_fee.xvg -n "T=${temperature}K")
+    SYSTEM_AGGR_OPTS+=(-m ${il_pair_count} -o ${output_dir}/)
+done
+
+echo "Running: ./scripts/film/extract_line_surface_tension.py ${SYSTEM_AGGR_OPTS[@]}"
+./scripts/film/extract_line_surface_tension.py "${SYSTEM_AGGR_OPTS[@]}"
+exit 0

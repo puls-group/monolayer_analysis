@@ -1,0 +1,54 @@
+#!/bin/bash
+
+
+echo "Trajectories should be put in subdirectories 'film_trajectories/<T>K_<pairs>A'"
+
+temperatures=( 200 250 300 350 400)
+il_pair_counts=(54 54 54 154 154)
+alu_count=(14592 14952 14952 58368 58368)
+oxy_count=(20736 20736 20736 82944 82944)
+ohy_count=(2304 2304 2304 9216 9216)
+
+bin_counts=(201 201 201 401 401)
+
+
+# IL type: C2Mim NTF2
+cation_atoms=19
+anion_atoms=15
+
+# distance in nanometer for particles to be considered touching
+cutoff_distance=6
+# minimal number of vertices a hole needs to have to be considered a hole and not a face of the film
+minimal_hole_vertex_count=6
+
+for i in "${!temperatures[@]}"
+do
+	temperature=${temperatures[i]}
+	il_pair_count=${il_pair_counts[i]}
+	bin_count=${bin_counts[i]}
+
+	indir=film_trajectories/${temperature}K_${il_pair_count}A
+	partialsdir=${indir}/partial/
+
+	trajectory_src=${indir}/nvt.xtc
+	period_out=${partialsdir}/pbc.period
+	cation_partial_xtc=${partialsdir}/cation_com.xtc
+	cation_partial_traj=${partialsdir}/cation_com.traj
+	anion_partial_xtc=${partialsdir}/anion_com.xtc
+	anion_partial_traj=${partialsdir}/anion_com.traj
+
+	
+	echo "Processing trajectories in ${indir} and outputting to ${output_dir} ..."
+
+	output_dir="./results/2d_rdf/${temperature}K_${il_pair_count}A/"
+	mkdir -p ${output_dir}
+
+
+	# Calcualte 2d distribution of anions with respect to cation
+	./planar_bin/extractPlanarDistribution ${cation_partial_xtc} ${anion_partial_xtc} ${output_dir}/cation_anion_ ${il_pair_count} ${il_pair_count} 0 0 -b ${bin_count}
+
+	# Calcualte 2d distribution of anions with respect to cation
+	./planar_bin/extractPlanarDistribution ${cation_partial_xtc} ${cation_partial_xtc} ${output_dir}/cation_cation_ ${il_pair_count} ${il_pair_count} 0 0 -s 1 -b ${bin_count}
+done
+
+exit 0
