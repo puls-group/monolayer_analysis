@@ -45,14 +45,29 @@ int main(int argc, char *argv[])
 	size_t dump_frame_index = 0;
 
 	op::OptionHandler OH(
-		R"HELP(Tool to calculate the area and cicumference of monolayer films on sapphire.)HELP");
+		R"HELP(Tool to calculate the area and cicumference of monolayer films on sapphire.
+		It takes two xtc input files/trajectories -i1 and -i2 with the positions of cations' and anion' centers of masses respectively. 
+		Both must have the same number of frames or the analysis will fail.
+		It then proceeds to iterate through the frames in the trajectory, constructs the representative graph for the film in each frame and outputs the resulting surface area and circumference measures to the output file.
+
+		Eventually, this program outputs a set of statistics files: 
+		- 1 File "outline_area.dat" containing surface area and outline lengths per frame for the entire trajectory.
+		- 1 File "holes_statistics.dat" containing statistics on each individual hole detected within the trajectory during some frame.
+		- 1 File "face_statistics.dat" containing statistics on how often polygons with a certain number of vertices on their outline have been detected.
+
+
+		A flag -d with the option -df <frame_number> is also provided to allow dumping the graph representation and the vertex positions from which the graph was generated to files in the current working directory.
+
+		Please be aware that while the help text denotes i1 and i2 as input for cations and anions respectively, it does not really matter in which order these are provided or if they are split into anions and cations in each trajectory.
+		In fact, this input option as two separate trajectories was mostly motivated through our preprocessing steps.
+		)HELP");
 
 	op::SingleValueOption<std::string> opt_fni1("i1", input_xtc_1);
-	opt_fni1.description("Path to input xtc trajectory to be processed.");
+	opt_fni1.description("Path to (cation) input xtc trajectory to be processed.");
 	OH.addOption(opt_fni1);
 
 	op::SingleValueOption<std::string> opt_fni2("i2", input_xtc_2);
-	opt_fni2.description("Path to input xtc trajectory to be processed.");
+	opt_fni2.description("Path to (anion) input xtc trajectory to be processed.");
 	OH.addOption(opt_fni2);
 
 	op::SingleValueOption<std::string> opt_fno1("o", output_prefix);
@@ -71,8 +86,9 @@ int main(int argc, char *argv[])
 
 	op::SingleValueOption<bool> opt_dump_graphs("d", dump_graphs);
 	opt_dump_graphs.description(
-		"Dump the first frame graph representation and exit.");
+		"Flag to dump the first frame graph representation and exit.");
 	OH.addOption(opt_dump_graphs);
+
 	op::SingleValueOption<size_t> opt_dump_frame_index("df", dump_frame_index);
 	opt_dump_frame_index.description(
 		"Index of the frame to dump the graph of.");
@@ -119,34 +135,39 @@ int main(int argc, char *argv[])
 	std::pair<std::vector<size_t>, size_t> stats;
 	std::vector<std::pair<size_t, std::pair<double, double>>> hole_stats;
 
+	/*
+	*	Processing of first frame which differs from the remaining frames due to different
+	* 	GROMACS API calls.
+	*/
 	if (!read_first_xtc(input1, &natoms1, &step1, &time1, box1, &x1, &prec1,
 						&bOK))
 	{
-		cerr << "Failed to read from input 1" << endl;
+		cerr << "Failed to read from input file i1" << endl;
 		exit_code = 1;
 		goto _finalize;
 	}
 	if (!bOK)
 	{
-		cerr << "Frame was corrupted in input 1" << endl;
+		cerr << "Frame was corrupted in input file i1" << endl;
 		exit_code = 1;
 		goto _finalize;
 	}
 	if (!read_first_xtc(input2, &natoms2, &step2, &time2, box2, &x2, &prec2,
 						&bOK))
 	{
-		cerr << "Failed to read from input 2" << endl;
+		cerr << "Failed to read from input file i2" << endl;
 		exit_code = 1;
 		goto _finalize;
 	}
 	if (!bOK)
 	{
-		cerr << "Frame was corrupted in input 2" << endl;
+		cerr << "Frame was corrupted in input file i2" << endl;
 		exit_code = 1;
 		goto _finalize;
 	}
 
 	// Debug dump of the PBC conditions
+	cerr << "PBC box of the system:" << endl;
 	cerr << box1[0][0] << "\t" << box1[0][1] << "\t" << box1[0][2] << endl;
 	cerr << box1[1][0] << "\t" << box1[1][1] << "\t" << box1[1][2] << endl;
 	cerr << box1[2][0] << "\t" << box1[2][1] << "\t" << box1[2][2] << endl;
@@ -180,6 +201,7 @@ int main(int argc, char *argv[])
 	stats = graph->findFaceStatistics(min_hole_size);
 	hole_stats = graph->findHoleStatistics(min_hole_size);
 
+	// Trigger on the flag to dump a specific frame
 	if (dump_graphs && dump_frame_index == cframe)
 	{
 		graph_out.open(output_prefix + "graph_dump.svg", ofstream::trunc);
@@ -192,16 +214,21 @@ int main(int argc, char *argv[])
 		goto _finalize;
 	}
 
+	// Prepare the statistics output files.
 	output.open(output_prefix + "outline_area.dat", ofstream::trunc);
 	output << "#Frame Nr [1]\t#circumference[nm]\t#area[nm^2]\t#number_of_holes[1]" << endl;
 	output << cframe << "\t" << graph->findOutline(min_hole_size) << "\t" << graph->findArea(min_hole_size) << "\t" << stats.second << endl;
 
 	holes_output.open(output_prefix + "holes_statistics.dat", ofstream::trunc);
-	holes_output << "#List of all holes detected in the film trajectory\n";
+	holes_output << "# List of all holes detected in the film trajectory\n";
+	holes_output << "# The holes in different frames are separated by a comment denoting the index of the respective frame" << endl;
 	holes_output << "# Number of vertices\t#circumference[nm]\t#area[nm^2]" << endl;
 
 	holes_output << "#" << cframe << "\n";
 
+	/*
+	*	Processing of all remaining frames with consistent GROMACS API conventions
+	*/
 	for (const std::pair<size_t, std::pair<double, double>> &entry : hole_stats)
 	{
 		holes_output << entry.first << "\t" << entry.second.first << "\t" << entry.second.second << "\n";
