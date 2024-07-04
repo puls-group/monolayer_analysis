@@ -45,22 +45,25 @@ int main(int argc, char *argv[])
 	size_t dump_frame_index = 0;
 
 	op::OptionHandler OH(
-		R"HELP(Tool to calculate the area and cicumference of monolayer films on sapphire.
-		It takes two xtc input files/trajectories -i1 and -i2 with the positions of cations' and anion' centers of masses respectively. 
-		Both must have the same number of frames or the analysis will fail.
-		It then proceeds to iterate through the frames in the trajectory, constructs the representative graph for the film in each frame and outputs the resulting surface area and circumference measures to the output file.
+R"HELP(Tool to calculate the area and cicumference of monolayer films on sapphire.
+It takes two xtc input files/trajectories -i1 and -i2 with the positions of cations' 
+and anion' centers of masses respectively. Both must have the same number of frames 
+or the analysis will fail. It then proceeds to iterate through the frames in the 
+trajectory, constructs the representative graph for the film in each frame and 
+outputs the resulting surface area and circumference measures to the output file.
 
-		Eventually, this program outputs a set of statistics files: 
-		- 1 File "outline_area.dat" containing surface area and outline lengths per frame for the entire trajectory.
-		- 1 File "holes_statistics.dat" containing statistics on each individual hole detected within the trajectory during some frame.
-		- 1 File "face_statistics.dat" containing statistics on how often polygons with a certain number of vertices on their outline have been detected.
+Eventually, this program outputs a set of statistics files into the path denoted by the option -o: 
+- 1 File "outline_area.dat" containing surface area and outline lengths per frame for the entire trajectory.
+- 1 File "holes_statistics.dat" containing statistics on each individual hole detected within the trajectory during some frame.
+- 1 File "face_statistics.dat" containing statistics on how often polygons with a certain number of vertices on their outline have been detected.
 
+A flag -d with the option -df <frame_number> is also provided to allow dumping the graph representation and the vertex positions from which the graph was generated to files in the current working directory.
 
-		A flag -d with the option -df <frame_number> is also provided to allow dumping the graph representation and the vertex positions from which the graph was generated to files in the current working directory.
-
-		Please be aware that while the help text denotes i1 and i2 as input for cations and anions respectively, it does not really matter in which order these are provided or if they are split into anions and cations in each trajectory.
-		In fact, this input option as two separate trajectories was mostly motivated through our preprocessing steps.
-		)HELP");
+Please be aware that while the help text denotes i1 and i2 as input for cations and anions respectively, it does not really matter in which order these are provided or if they are split into anions and cations in each trajectory.
+In fact, this input option as two separate trajectories was mostly motivated through our preprocessing steps.
+Unlike for the `extractPlanarDistribution` tool, you cannot provide offsets for the two populations in each input trajectory. However, in principle, you can input the same trajectory containing both populations as both i1 and i2, which will not impact the area or circumference statistics. It may, however, impact statistics involving the number of vertices in an unpredictable manner. 
+In the best case, it will simply double the number of vertices, but numerical inaccuracy of floating point calculations may lead to unpredictable results for the scenario of two identical points within the graph.
+)HELP");
 
 	op::SingleValueOption<std::string> opt_fni1("i1", input_xtc_1);
 	opt_fni1.description("Path to (cation) input xtc trajectory to be processed.");

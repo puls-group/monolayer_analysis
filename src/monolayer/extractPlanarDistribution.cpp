@@ -60,7 +60,20 @@ int main(int argc, char* argv[]) {
 	bool skipsame = false;
 
 	op::OptionHandler OH(
-		R"HELP(Tool to extract 2d density distribution of two different kinds of particles.)HELP");
+R"HELP(Tool to calculate 2D relative density distributions of sets of two different populations of vertices/molecules in a monolayer configuration. If not provided with a monolayer configuration, the distribution of the projection onto the `xy`-plain will be calculated. 
+It takes two xtc input files/trajectories -i1 and -i2 with the positions of, e.g., cations' and anion' centers of masses respectively but any other separation into two populations is possible. Both must have the same number of frames or the analysis will fail. The tools does not account for a change in the number of molecules per frame within a trajectory. It, however, does not rely on equal numbers of molecules in both trajectories. 
+
+It then proceeds to iterate through the frames in the trajectory, and calculate the distribution of the second population relative to the first population in a grid of configurable size and resolution and it does the same for the distribution of other members of the first population relative to members of the first population (pairs of identical indices will be skipped if  `-s 1` is set). 
+The grid is chosen to bin the coefficients of the PBC basis vectors in the `xy`-plain after linear decomposition of relative positions into the basis representation clipped to a `[-0.5, +0.5]` interval. Absolute distributions can be obtained by multiplying with the respective basis vector again.
+It furthermore averages its resulting statistics across all frames in the provided trajectories.
+In principle, it would also be possible to provide individual atom positions to the code instead of COM for full molecules.
+This would, however smear out the resulting distributions especially in `solid-like` systems.
+
+Eventually, this program outputs a set of statistics files into the path denoted by the option `-o`: 
+- 1 File `basis.dat` containing the basis vectors in the `xy`-plain used for the basis decomposition. These are extracted from the PBC data associated with the first input trajectory `-i1`
+- 1 File `xy_distribution.dat` containing statistics on the distribution of the coeffcients in the basis representation of relative distances associated with the basis vectors in `basis.dat`. 
+
+Please be aware that i1 and i2 may denote the same input trajectory file in xtc format, as for this tool (in contrast to `extractFilmParameters`), the number of molecules of either population as well as the offset of the population in the trajectory can be provided via parameters of the tool**)HELP");
 
 	op::SingleValuePositionalOption<std::string> opt_fni1("input_xtc_1", input_xtc_1, true);
 	opt_fni1.description(
@@ -117,9 +130,9 @@ int main(int argc, char* argv[]) {
 
 	struct t_fileio *input1, *input2;
 
-	cerr << "Opening data file " << input_xtc_1 << endl;
+	cerr << "Opening first xtc data file " << input_xtc_1 << endl;
 	input1 = open_xtc(input_xtc_1.c_str(), "r");
-	cerr << "Opening data file " << input_xtc_2 << endl;
+	cerr << "Opening seconf xtc data file " << input_xtc_2 << endl;
 	input2 = open_xtc(input_xtc_2.c_str(), "r");
 
 
@@ -163,7 +176,7 @@ int main(int argc, char* argv[]) {
 	for (; (cframe == 0 && read_first_xtc(input1, &natoms1, &step1, &time1, box1, &x1, &prec1, &bOK1) && read_first_xtc(input2, &natoms2, &step2, &time2, box2, &x2, &prec2, &bOK2)) ||
 		(read_next_xtc(input1, natoms1, &step1, &time1, box1, x1, &prec1, &bOK1) > 0 && read_next_xtc(input2, natoms2, &step2, &time2, box2, x2, &prec2, &bOK2) > 0);) {
 		if (!bOK1 || ! bOK2) {
-			cerr << "Frame #" << cframe << " was corrupted" << endl;
+			cerr << "Frame #" << cframe << " in either i1 or i2 was corrupted" << endl;
 			exit_code = 1;
 			goto _finalize;
 		}
@@ -250,9 +263,9 @@ int main(int argc, char* argv[]) {
 	file.open(output_prefix + "xy_distribution.dat",
 		std::ofstream::trunc);
 
-	file << "#The file should be read as a 2 dimensional matrix" << endl;
-	file << "#The first line has one dummy entry and the multiples of the y basis associated with the bins in that column " << endl;
-	file << "#Each following line has the multiple of the x basis associated with the bins in that row and the mean number of COM in a frame in that bin relative to the total number of COM detected." << endl;
+	file << "# The file should be read as a 2 dimensional matrix" << endl;
+	file << "# The first line has one dummy entry and the multiples of the y basis associated with the bins in that column " << endl;
+	file << "# Each following line has the multiple of the x basis associated with the bins in that row and the mean number of COM in a frame in that bin relative to the total number of COM detected." << endl;
 	file << std::setprecision(10) << std::fixed;
 
 	file << 0.0;

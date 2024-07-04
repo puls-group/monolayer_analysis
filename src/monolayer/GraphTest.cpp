@@ -1,5 +1,6 @@
 #include "GraphConstructor.h"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -52,9 +53,11 @@ int main(int argc, char**argv) {
 	return 0;
 }*/
 
-int main(int argc, char**argv) {
+int main(int argc, char **argv)
+{
 
-	pair<v2d, v2d> pbc = { { 0,3 },{ 3,0 } };
+	pair<v2d, v2d> pbc = {{0, 3}, {3, 0}};
+	std::ofstream graph_out, graph_out_2;
 
 	v2d testv(4, 0);
 	cerr << "Check basis decomposition of vector" << endl;
@@ -64,42 +67,45 @@ int main(int argc, char**argv) {
 	cerr << testv << "-->" << pbc.first << "++" << pbc.second << "::" << coeff << endl;
 
 	cerr << "Check pbc graph construction" << endl;
-	vector<v2d> points = { { 0.5,0.5 },{ 0.5,1.5 },{ 0.5,2.5 },{ 1.5,2 },{ 2.5,2.5 },{ 2,1 } };
+	vector<v2d> points = {{0.5, 0.5}, {0.5, 1.5}, {0.5, 2.5}, {1.5, 2}, {2.5, 2.5}, {2, 1}};
+
+	std::string graph_output_path = "./tests/graph_simple_pbc.svg";
+	graph_out.open(graph_output_path, std::ios::out);
 
 	Graph2D *res = constructPlanarGraph(points, pbc, sqrt(2.55));
 	cerr << "done with graph creation" << endl;
 	cerr << "Check graph analysis routines" << endl;
 	res->findFaces();
-	res->dump(cout);
+	res->dump(graph_out);
 	cout << endl;
-	cerr << "Done dumping" << endl;
+	cerr << "Done dumping to " << graph_output_path << endl;
 
 	cerr << "Outline: " << res->findOutline(1000) << endl;
 	cerr << "Area: " << res->findArea(1000) << endl;
-	//res->dump(cout);
-	//cout << endl;
+	// res->dump(cout);
+	// cout << endl;
 	delete res;
+	graph_out.close();
 
+	pbc = {{0, 100}, {100, 0}};
+	std::string graph_output_path_2 = "./tests/graph_simple_nonpbc.svg";
+	graph_out_2.open(graph_output_path_2, std::ios::out);
 
-	pbc = { { 0,100},{ 100,0 } };
-
-	points = { { 0.5,0.5 },{ 0.5,1.5 },{ 0.5,2.5 },{ 1.5,2 },{ 2.5,2.5 },{ 2,1 } };
+	points = {{0.5, 0.5}, {0.5, 1.5}, {0.5, 2.5}, {1.5, 2}, {2.5, 2.5}, {2, 1}};
 
 	cerr << "Check finite graph analysis" << endl;
 	res = constructPlanarGraph(points, pbc, sqrt(2.55));
 	cerr << "done with graph creation" << endl;
 	res->findFaces();
-	res->dump(cout);
+	res->dump(graph_out_2);
 	cout << endl;
-	cerr << "Done dumping" << endl;
+	cerr << "Done dumping to " << graph_output_path_2 << endl;
 
 	cerr << "Outline: " << res->findOutline(1000) << endl;
 	cerr << "Area: " << res->findArea(1000) << endl;
-	//res->dump(cout);
-	//cout << endl;
+	// res->dump(cout);
+	// cout << endl;
 	delete res;
-
-
 
 	return 0;
 }
