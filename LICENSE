@@ -19,3 +19,17 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+If you use the tools within the repository or a derivative thereof for scientific work, please refer to the original publication:
+```
+@misc{hoellring2024criticalityimidazoliumionicliquid,
+      title={Criticality in an imidazolium ionic liquid fully wetting a sapphire support}, 
+      author={Kevin Höllring and Nataša Vučemilović-Alagić and David M. Smith and Ana-Sunčana Smith},
+      year={2024},
+      eprint={2403.08449},
+      archivePrefix={arXiv},
+      primaryClass={cond-mat.soft},
+      url={https://arxiv.org/abs/2403.08449}, 
+}
+```
+If you create a derivative tool based on the algorithms and their implementations presented within this repository or the above mentioned publication, you are held to include this notice and citation reference with your tool.
